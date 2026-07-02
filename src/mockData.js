@@ -1,8 +1,9 @@
 // Mock Data and City Coordinates for Smart City Monitor
-// Base coordinates centered around Boston, MA (approx. 42.3601, -71.0589)
+// Original coordinates centered around Boston, MA (approx. 42.3601, -71.0589)
 
-export const MAP_CENTER = [42.3601, -71.0589];
-export const MAP_ZOOM = 14;
+export const ORIGINAL_CENTER = [42.3601, -71.0589];
+export const MAP_CENTER = ORIGINAL_CENTER;
+export const MAP_ZOOM = 15;
 
 // Predefined routes consisting of lat-lng pairs
 export const ROUTES = {
@@ -119,7 +120,7 @@ export const INITIAL_VEHICLES = [
 export const CLEANLINESS_SEGMENTS = [
   {
     id: "c-seg-1",
-    name: "Washington St (Sector 1)",
+    name: "Mahatma Gandhi Rd",
     coordinates: ROUTES["Downtown Loop"].slice(0, 5),
     level: "Clean",
     score: 95,
@@ -127,7 +128,7 @@ export const CLEANLINESS_SEGMENTS = [
   },
   {
     id: "c-seg-2",
-    name: "Tremont St Corridor",
+    name: "Brigade Rd Corridor",
     coordinates: ROUTES["Downtown Loop"].slice(4, 9),
     level: "Moderate",
     score: 72,
@@ -135,7 +136,7 @@ export const CLEANLINESS_SEGMENTS = [
   },
   {
     id: "c-seg-3",
-    name: "Atlantic Ave Crossing",
+    name: "Outer Ring Rd",
     coordinates: ROUTES["Downtown Loop"].slice(8, 12),
     level: "Dirty",
     score: 38,
@@ -143,7 +144,7 @@ export const CLEANLINESS_SEGMENTS = [
   },
   {
     id: "c-seg-4",
-    name: "Commercial St Sweep",
+    name: "Residency Road Sweep",
     coordinates: ROUTES["Northside Sweep"].slice(0, 4),
     level: "Clean",
     score: 91,
@@ -151,7 +152,7 @@ export const CLEANLINESS_SEGMENTS = [
   },
   {
     id: "c-seg-5",
-    name: "Causeway Rd",
+    name: "Indiranagar 100ft Rd",
     coordinates: ROUTES["Northside Sweep"].slice(3, 7),
     level: "Dirty",
     score: 42,
@@ -159,7 +160,7 @@ export const CLEANLINESS_SEGMENTS = [
   },
   {
     id: "c-seg-6",
-    name: "Harrison Ave Boulevard",
+    name: "Koramangala Blvd",
     coordinates: ROUTES["Southside Transit"].slice(2, 6),
     level: "Moderate",
     score: 64,
@@ -174,7 +175,7 @@ export const ROAD_HEALTH_ANOMALIES = [
     type: "Severe Pothole",
     severity: "High",
     coordinates: [42.3621, -71.0589],
-    street: "Congress St & State St",
+    street: "MG Road Junction",
     confidence: 96,
     status: "Pending",
     detectedBy: "V-101",
@@ -185,7 +186,7 @@ export const ROAD_HEALTH_ANOMALIES = [
     type: "Longitudinal Crack",
     severity: "Medium",
     coordinates: [42.3630, -71.0645],
-    street: "Cambridge St (Near Government Center)",
+    street: "Double Road (Near HSR Layout)",
     confidence: 84,
     status: "Pending",
     detectedBy: "V-101",
@@ -196,7 +197,7 @@ export const ROAD_HEALTH_ANOMALIES = [
     type: "Sunken Manhole",
     severity: "Low",
     coordinates: [42.3585, -71.0640],
-    street: "Beacon St",
+    street: "Richmond Town Rd",
     confidence: 79,
     status: "Monitored",
     detectedBy: "V-103",
@@ -207,7 +208,7 @@ export const ROAD_HEALTH_ANOMALIES = [
     type: "Group of Potholes",
     severity: "High",
     coordinates: [42.3695, -71.0555],
-    street: "Valenti Way",
+    street: "Commercial Street",
     confidence: 92,
     status: "Scheduled",
     detectedBy: "V-102",
@@ -218,7 +219,7 @@ export const ROAD_HEALTH_ANOMALIES = [
     type: "Deep Asphalt Depression",
     severity: "High",
     coordinates: [42.3480, -71.0700],
-    street: "Columbus Ave & Berkeley St",
+    street: "Hosur Rd & Silk Board",
     confidence: 97,
     status: "Pending",
     detectedBy: "V-103",
@@ -229,13 +230,42 @@ export const ROAD_HEALTH_ANOMALIES = [
     type: "Alligator Cracking",
     severity: "Medium",
     coordinates: [42.3605, -71.0800],
-    street: "Beacon St (Near Dartmouth St)",
+    street: "Bannerghatta Main Rd",
     confidence: 88,
     status: "Pending",
     detectedBy: "V-104",
     time: "4 mins ago"
   }
 ];
+
+// Shifts all coordinate arrays based on a new map center
+export function getShiftedData(centerLat, centerLng) {
+  const latDiff = centerLat - ORIGINAL_CENTER[0];
+  const lngDiff = centerLng - ORIGINAL_CENTER[1];
+
+  const shiftPoint = (pt) => [pt[0] + latDiff, pt[1] + lngDiff];
+  const shiftPath = (path) => path.map(shiftPoint);
+
+  // Shift ROUTES
+  const routes = {};
+  Object.entries(ROUTES).forEach(([name, path]) => {
+    routes[name] = shiftPath(path);
+  });
+
+  // Shift CLEANLINESS_SEGMENTS
+  const cleanliness = CLEANLINESS_SEGMENTS.map(seg => ({
+    ...seg,
+    coordinates: shiftPath(seg.coordinates)
+  }));
+
+  // Shift ROAD_HEALTH_ANOMALIES
+  const anomalies = ROAD_HEALTH_ANOMALIES.map(anom => ({
+    ...anom,
+    coordinates: shiftPoint(anom.coordinates)
+  }));
+
+  return { routes, cleanliness, anomalies };
+}
 
 // Sample images/videos simulation labels
 export const CAMERA_CLASSES = {
@@ -273,7 +303,6 @@ export function drawAIDetectionOverlay(canvas, type, frameCount, currentDetectio
   // Draw simulated road lines moving down
   ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
   ctx.lineWidth = 4;
-  const lineYOffset = (frameCount * 3) % 40;
   
   // Left lane line
   ctx.beginPath();

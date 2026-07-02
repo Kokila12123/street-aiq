@@ -38,44 +38,24 @@ import {
   CLEANLINESS_SEGMENTS, 
   ROAD_HEALTH_ANOMALIES, 
   CAMERA_CLASSES,
-  drawAIDetectionOverlay
+  drawAIDetectionOverlay,
+  getShiftedData
 } from './mockData';
 
 export default function App() {
   // Navigation State
   const [activeTab, setActiveTab] = useState('dashboard');
   
+  // Map Location States
+  const [mapCenter, setMapCenter] = useState([12.9716, 77.5946]); // Default to Bangalore, India
+  const [routes, setRoutes] = useState(ROUTES);
+
   // Simulation States
   const [vehicles, setVehicles] = useState(INITIAL_VEHICLES);
-  const [alerts, setAlerts] = useState([
-    {
-      id: 'init-1',
-      type: 'Severe Pothole',
-      severity: 'High',
-      coordinates: [42.3621, -71.0589],
-      street: 'Congress St & State St',
-      confidence: 0.96,
-      status: 'Pending',
-      detectedBy: 'V-101',
-      time: '14:32:10',
-      category: 'health'
-    },
-    {
-      id: 'init-2',
-      type: 'Plastic Waste Accumulation',
-      severity: 'Medium',
-      coordinates: [42.3650, -71.0550],
-      street: 'Commercial St Sweep',
-      confidence: 0.88,
-      status: 'Pending',
-      detectedBy: 'V-102',
-      time: '14:30:15',
-      category: 'cleanliness'
-    }
-  ]);
+  const [alerts, setAlerts] = useState([]);
   
-  const [cleanlinessSegments, setCleanlinessSegments] = useState(CLEANLINESS_SEGMENTS);
-  const [roadAnomalies, setRoadAnomalies] = useState(ROAD_HEALTH_ANOMALIES);
+  const [cleanlinessSegments, setCleanlinessSegments] = useState([]);
+  const [roadAnomalies, setRoadAnomalies] = useState([]);
   const [toasts, setToasts] = useState([]);
   
   // Fleet Manager Form States
@@ -96,9 +76,67 @@ export default function App() {
     detectionThreshold: 80,
     enableSound: false,
     notificationsEnabled: true,
-    mapTheme: 'dark',
+    mapTheme: 'light', // Changed to light (normal map) by default
     activeModel: 'SmartCity Unified-CV v4.2'
   });
+
+  // Geolocation trigger on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setMapCenter([latitude, longitude]);
+          addToast('Location Synced', `Centered to your coordinates: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, 'success');
+        },
+        (error) => {
+          console.warn("Geolocation denied or unavailable:", error);
+          // Defaulting to Bangalore
+          setMapCenter([12.9716, 77.5946]);
+          addToast('Default Location', 'Geolocation unavailable. Defaulting to Bangalore, India.', 'info');
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      setMapCenter([12.9716, 77.5946]);
+    }
+  }, []);
+
+  // Update routes, segments, anomalies and initial alerts based on mapCenter
+  useEffect(() => {
+    const data = getShiftedData(mapCenter[0], mapCenter[1]);
+    setRoutes(data.routes);
+    setCleanlinessSegments(data.cleanliness);
+    setRoadAnomalies(data.anomalies);
+
+    // Dynamic initial alerts near the centered position
+    setAlerts([
+      {
+        id: 'init-1',
+        type: 'Severe Pothole',
+        severity: 'High',
+        coordinates: [mapCenter[0] + 0.001, mapCenter[1] - 0.002],
+        street: 'Mahatma Gandhi Rd',
+        confidence: 0.96,
+        status: 'Pending',
+        detectedBy: 'V-101',
+        time: '14:32:10',
+        category: 'health'
+      },
+      {
+        id: 'init-2',
+        type: 'Plastic Waste Accumulation',
+        severity: 'Medium',
+        coordinates: [mapCenter[0] - 0.002, mapCenter[1] + 0.002],
+        street: 'Brigade Rd Corridor',
+        confidence: 0.88,
+        status: 'Pending',
+        detectedBy: 'V-102',
+        time: '14:30:15',
+        category: 'cleanliness'
+      }
+    ]);
+  }, [mapCenter]);
 
   // Reference for GPS Sim Timer
   const simTimerRef = useRef(null);
@@ -131,7 +169,7 @@ export default function App() {
         return prevVehicles.map(vehicle => {
           if (vehicle.status !== 'Active') return vehicle;
           
-          const routeCoords = ROUTES[vehicle.route];
+          const routeCoords = routes[vehicle.route];
           if (!routeCoords) return vehicle;
 
           // Progress to next index
@@ -218,7 +256,7 @@ export default function App() {
   const handleAIDetection = (type, label, confidence) => {
     // Select a vehicle currently running the feed (defaulting to the selected vehicle or a random one on that route)
     const activeVehicle = vehicles.find(v => v.id === selectedVehicleId) || vehicles[0];
-    const currentCoords = ROUTES[activeVehicle.route][activeVehicle.routeIndex];
+    const currentCoords = routes[activeVehicle.route][activeVehicle.routeIndex];
     
     // Add offset slightly so they don't exactly stack
     const reportCoords = [
@@ -297,7 +335,7 @@ export default function App() {
       mapInstance.current = L.map(mapRef.current, {
         zoomControl: false,
         attributionControl: false
-      }).setView(MAP_CENTER, MAP_ZOOM);
+      }).setView(mapCenter, MAP_ZOOM);
 
       // Add Tile Layer
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -315,6 +353,13 @@ export default function App() {
         }
       };
     }, []);
+
+    // Update view when mapCenter changes
+    useEffect(() => {
+      if (mapInstance.current) {
+        mapInstance.current.setView(mapCenter);
+      }
+    }, [mapCenter]);
 
     // Draw Static Routes and Cleanliness Overlays
     useEffect(() => {
@@ -345,7 +390,7 @@ export default function App() {
         });
       } else {
         // Draw subtle grey paths for standard tracking
-        Object.entries(ROUTES).forEach(([routeName, coords]) => {
+        Object.entries(routes).forEach(([routeName, coords]) => {
           const isSelected = selectedVehicle && selectedVehicle.route === routeName;
           const routeLine = L.polyline(coords, {
             color: isSelected ? selectedVehicle.color : 'rgba(255,255,255,0.15)',
@@ -357,7 +402,7 @@ export default function App() {
           routesPolylines.current[routeName] = routeLine;
         });
       }
-    }, [mode, selectedVehicle, cleanlinessSegments]);
+    }, [mode, selectedVehicle, cleanlinessSegments, routes]);
 
     // Handle Road Health Anomalies (Potholes, Cracks) Markers
     useEffect(() => {
@@ -394,7 +439,7 @@ export default function App() {
       if (!mapInstance.current) return;
 
       vehicles.forEach(vehicle => {
-        const routeCoords = ROUTES[vehicle.route];
+        const routeCoords = routes[vehicle.route];
         if (!routeCoords) return;
         const coords = routeCoords[vehicle.routeIndex];
 
@@ -430,15 +475,15 @@ export default function App() {
 
       // Auto Pan to selected vehicle if requested
       if (selectedVehicle) {
-        const routeCoords = ROUTES[selectedVehicle.route];
+        const routeCoords = routes[selectedVehicle.route];
         if (routeCoords && routeCoords[selectedVehicle.routeIndex]) {
           mapInstance.current.panTo(routeCoords[selectedVehicle.routeIndex]);
         }
       }
-    }, [vehicles, selectedVehicle]);
+    }, [vehicles, selectedVehicle, routes]);
 
     return (
-      <div className="map-outer-container">
+      <div className={`map-outer-container ${settings.mapTheme === 'dark' ? 'dark-theme-map' : ''}`}>
         <div ref={mapRef} className="map-element" />
         
         {/* Render Map Legend conditionally */}
@@ -843,7 +888,7 @@ export default function App() {
                       value={newVehicle.route}
                       onChange={e => setNewVehicle(prev => ({ ...prev, route: e.target.value }))}
                     >
-                      {Object.keys(ROUTES).map(rName => (
+                      {Object.keys(routes).map(rName => (
                         <option key={rName} value={rName}>{rName}</option>
                       ))}
                     </select>

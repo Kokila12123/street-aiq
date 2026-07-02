@@ -335,9 +335,12 @@ body {
 }
 
 /* Dark Mode Leaflet Map Hack */
-.leaflet-container {
+.dark-theme-map .leaflet-container {
   filter: invert(90%) hue-rotate(190deg) brightness(85%) contrast(110%);
   background: #0d131f !important;
+}
+.leaflet-container {
+  background: #f3f4f6 !important;
 }
 
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
