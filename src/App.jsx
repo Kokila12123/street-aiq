@@ -602,8 +602,8 @@ export default function App() {
             <Activity size={20} />
           </div>
           <div>
-            <div className="logo-text">AegisCity AI</div>
-            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>METROPOLIS DASHBOARD</div>
+            <div className="logo-text">Street AIQ</div>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>URBAN INTELLIGENCE AS A SERVICE</div>
           </div>
         </div>
 
@@ -654,7 +654,7 @@ export default function App() {
         <div className="sidebar-footer">
           <div>System: <span style={{ color: 'var(--color-primary)' }}>Online</span></div>
           <div>CV Engine: <span style={{ color: 'var(--color-success)' }}>Active</span></div>
-          <div style={{ marginTop: 8, fontSize: '0.7rem' }}>© 2026 AegisCity Technologies</div>
+          <div style={{ marginTop: 8, fontSize: '0.7rem' }}>© 2026 Street AIQ Systems</div>
         </div>
       </aside>
 
@@ -666,8 +666,8 @@ export default function App() {
           <>
             <header className="content-header">
               <div className="content-title">
-                <h1>Metropolis Control Center</h1>
-                <p>Live Fleet Telemetry & Road Structural Analytics</p>
+                <h1>Street AIQ Control Center</h1>
+                <p>Urban Intelligence as a Service</p>
               </div>
               <div className="header-actions">
                 <div style={{ fontSize: '0.85rem', background: 'rgba(255,255,255,0.04)', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1140,7 +1140,7 @@ export default function App() {
                     >
                       <option value="SmartCity Unified-CV v4.2">SmartCity Unified-CV v4.2 (Standard)</option>
                       <option value="RoadEye Edge-Pothole v2.1">RoadEye Edge-Pothole v2.1 (Performance-focused)</option>
-                      <option value="Aegis Vision Super-Res v6.0">Aegis Vision Super-Res v6.0 (Heavy Accuracy)</option>
+                      <option value="Street AIQ Super-Res v6.0">Street AIQ Super-Res v6.0 (Heavy Accuracy)</option>
                     </select>
                   </div>
                 </div>
