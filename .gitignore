@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# AI Model weights and temporary testing images
+*.pth
+test_inference_input.png
+__pycache__/
